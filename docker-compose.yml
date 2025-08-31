@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: kidsstory-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: kidsstory123
+      MONGO_INITDB_DATABASE: kidsstory
+    networks:
+      - kidsstory-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kidsstory-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+      - uploads_data:/usr/src/app/uploads
+      - pdfs_data:/usr/src/app/generated_pdfs
+    environment:
+      NODE_ENV: development
+      MONGODB_URI: mongodb://admin:kidsstory123@mongodb:27017/kidsstory?authSource=admin
+      JWT_SECRET: your-super-secret-jwt-key-development
+      PORT: 3001
+    depends_on:
+      - mongodb
+    networks:
+      - kidsstory-network
+    command: npm run dev
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: kidsstory-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      REACT_APP_API_URL: http://localhost:3001/api
+      CHOKIDAR_USEPOLLING: true
+    depends_on:
+      - backend
+    networks:
+      - kidsstory-network
+    command: npm start
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  uploads_data:
+    driver: local
+  pdfs_data:
+    driver: local
+
+networks:
+  kidsstory-network:
+    driver: bridge
