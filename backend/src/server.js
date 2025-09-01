@@ -21,6 +21,8 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }))
 
+app.set('trust proxy', 1)
+
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://kidsstory.app', 'https://www.kidsstory.app']
